@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { auth, db } from "@/lib/firebase";
@@ -54,6 +55,7 @@ export default function LoginPage() {
       }
 
       router.push("/feed");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(err);
       setError("Google sign-in failed. Please try again.");
