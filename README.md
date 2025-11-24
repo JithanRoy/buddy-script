@@ -39,7 +39,7 @@ BuddyScript is a full-stack social media feed application built using **Next.js 
 
 ## 🚀 Live Demo
 
-- **Live URL:** [[Insert your Vercel/Netlify Link Here](https://buddy-script-snowy.vercel.app/login)]
+- **Live URL:** [[https://buddy-script-snowy.vercel.app/login](https://buddy-script-snowy.vercel.app/login)]
 
 ---
 
