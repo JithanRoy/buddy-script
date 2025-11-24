@@ -33,54 +33,105 @@ You can check out [the Next.js GitHub repository](https://github.com/JithanRoy/b
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://buddy-script-snowy.vercel.app/login) from the creators of Next.js.
 
-## BuddyScript - Project Documentation
+# BuddyScript - Social Media Feed Application
 
-1. Project Overview
-   BuddyScript is a social media feed application built with Next.js and Firebase. It converts a static HTML/CSS design into a fully functional Single Page Application (SPA). Users can register, log in (via Email or Google), create posts with images, like posts, and engage in threaded comments.
-2. Tech Stack
-   Frontend Framework: Next.js 14 (App Router)
-   Language: TypeScript
-   Styling: Tailwind CSS
-   Backend / Database: Firebase (Authentication & Firestore)
-   Image Hosting: ImgBB API
-   Form Handling: React Hook Form + Zod Validation
-   Icons: React Icons
-3. Key Features Implemented
-   Authentication:
-   Secure Registration and Login using Firebase Auth.
-   Google Sign-In integration.
-   Protected Routes: Non-authenticated users are redirected to the login page.
-   Feed Functionality:
-   Create posts with Text and Images.
-   Real-time feed updates using Firestore listeners (onSnapshot).
-   Privacy Controls: "Public" posts are visible to everyone; "Private" posts are visible only to the author.
-   Interactions:
-   Likes: Real-time like/unlike toggle on posts and comments.
-   Like Details: A modal shows the list of users who liked a specific post.
-   Comments: Threaded comment system allowing users to reply to comments.
-4. Architectural Decisions & Trade-offs
-   A. Image Storage (ImgBB vs. Firebase Storage)
-   Decision: I utilized the ImgBB API for handling image uploads instead of Firebase Storage.
-   Reasoning: The Firebase "Blaze Plan" (required for cloud functions and often storage in specific regions) requires billing setup. To ensure the application remains strictly free-tier and accessible without credit card dependencies for review, ImgBB was chosen as a robust, developer-friendly alternative.
-   B. Client-Side Privacy Filtering
-   Decision: Private posts are filtered on the client side inside the useEffect hook rather than via complex Firestore Security Rules conditions.
-   Reasoning: While backend filtering is better for large-scale security, Firestore's NoSQL structure makes "OR" queries (e.g., fetch PUBLIC OR (PRIVATE AND MY_ID)) complex and requires composite indexes. For this assignment's scale, client-side filtering provided a smoother UX while still maintaining data integrity via basic Security Rules.
-   C. Component Structure (SOLID Principles)
-   Decision: I broke down the monolithic HTML design into small, single-responsibility components:
-   CreatePost.tsx: Handles form input and image upload logic only.
-   PostCard.tsx: Handles the display and interaction of a single post.
-   CommentItem.tsx: Handles the recursive logic for nested replies.
-   Reasoning: This makes the code maintainable, readable, and easier to debug.
-   D. Authentication State
-   Decision: Implemented a global AuthContext and a <ProtectedRoute> wrapper component.
-   Reasoning: This avoids code duplication by handling session checks in one place. If a user is not logged in, the ProtectedRoute prevents the UI from flashing before redirecting.
-5. Security Measures
-   Frontend: ProtectedRoute component prevents unauthorized navigation to the Feed.
-   Backend: Firestore Security Rules were deployed to ensure that only authenticated users can read/write data to the posts and users collections.
-   Environment Variables: API keys (Firebase and ImgBB) are stored in .env.local and are not hardcoded in the source files.
-6. How to Run Locally
-   Clone the repository.
-   Create a .env.local file and add the provided Firebase and ImgBB keys.
-   Run npm install.
-   Run npm run dev.
-   Open http://localhost:3000.
+BuddyScript is a full-stack social media feed application built using **Next.js 14** and **Firebase**. It transforms a provided static HTML/CSS design into a fully functional Single Page Application (SPA). The app supports user authentication, real-time posts with images, privacy controls, and threaded comments.
+
+## 🚀 Live Demo & Video
+*   **Live URL:** [Insert your Vercel/Netlify Link Here]
+*   **Video Walkthrough:** [Insert your YouTube Link Here]
+
+---
+
+## 🛠️ Tech Stack
+
+*   **Frontend:** Next.js 14 (App Router), React, TypeScript
+*   **Styling:** Tailwind CSS
+*   **Backend & Database:** Firebase Authentication, Firestore (NoSQL)
+*   **Image Storage:** ImgBB API (chosen for robust free-tier support)
+*   **Forms & Validation:** React Hook Form, Zod
+*   **Icons:** React Icons
+
+---
+
+## ✨ Key Features
+
+### 1. Authentication & Authorization
+*   **Secure Login/Register:** Email & Password authentication using Firebase.
+*   **Google Sign-In:** One-click login with automatic profile photo integration.
+*   **Protected Routes:** A higher-order component (`<ProtectedRoute>`) ensures only authenticated users can access the feed.
+
+### 2. Feed Functionality
+*   **Create Posts:** Support for text content and image uploads.
+*   **Real-time Updates:** The feed listens to Firestore changes via `onSnapshot`, updating instantly without page reloads.
+*   **Privacy Controls:**
+    *   **Public:** Visible to all users.
+    *   **Private:** Visible only to the author.
+
+### 3. Interactions
+*   **Likes:** Real-time toggling of likes on posts and comments.
+*   **Like Details:** A modal displays the list of users who liked a specific post.
+*   **Comments & Replies:** A recursive threaded comment system allows users to reply to comments infinitely (UI flattened for better UX).
+
+---
+
+## 🏗️ Architectural Decisions & Trade-offs
+
+### 1. Image Storage (ImgBB vs. Firebase Storage)
+*   **Decision:** I utilized the **ImgBB API** for handling image uploads instead of Firebase Storage.
+*   **Reasoning:** The Firebase "Blaze Plan" is often required for cloud storage functionality in specific regions or to avoid strict quota limits during development. To ensure the application remains strictly free-tier and easily reviewable without configuration errors, ImgBB was chosen as a reliable alternative that returns direct URLs for storage in Firestore.
+
+### 2. Client-Side Privacy Filtering
+*   **Decision:** Private posts are filtered on the client side within the `useEffect` hook rather than relying solely on complex Firestore queries.
+*   **Reasoning:** Firestore's NoSQL structure makes "OR" queries (e.g., `fetch WHERE visibility == 'public' OR authorId == 'me'`) complex, often requiring composite indexes. For the scope of this assignment, fetching recent posts and filtering based on the `visibility` flag provided the best balance of performance and user experience while keeping the backend logic simple.
+
+### 3. Component Structure (SOLID Principles)
+*   **Decision:** The application logic is separated into small, single-responsibility components located in `src/components/feed/`:
+    *   `CreatePost.tsx`: Handles form input and image API uploads.
+    *   `PostCard.tsx`: Manages the display state of a single post.
+    *   `CommentItem.tsx`: Handles recursive logic for nested replies.
+*   **Reasoning:** This improves code readability, makes debugging easier, and allows for individual components to be reused.
+
+---
+
+## 🔒 Security Measures
+
+1.  **Frontend Protection:** The `ProtectedRoute` wrapper instantly redirects unauthenticated users to the login page before the UI renders.
+2.  **Database Security:** Firestore Security Rules (deployed) ensure that:
+    *   Users can only write to the database if they have a valid Auth Token.
+    *   Users cannot delete or modify posts that do not belong to them.
+3.  **Environment Variables:** All API keys are accessed via `process.env` and are not hardcoded.
+
+---
+
+## 💻 How to Run Locally
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd buddy-script
+    ```
+
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Setup Environment Variables:**
+    Create a file named `.env.local` in the root directory and add your keys:
+    ```env
+    NEXT_PUBLIC_IMGBB_API_KEY=your_imgbb_key
+    ```
+
+4.  **Run the Development Server:**
+    ```bash
+    npm run dev
+    ```
+
+5.  **Access the App:**
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 📄 License
+This project is created for an assignment/assessment purpose.
