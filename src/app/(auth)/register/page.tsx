@@ -146,7 +146,7 @@ export default function RegisterPage() {
                 <span className="bg-white px-2 text-gray-500 text-sm relative z-10">
                   Or
                 </span>
-                <div className="absolute top-1/2 left-0 w-full h-px bg-gray-200 -z-0"></div>
+                <div className="absolute top-1/2 left-0 w-full h-px bg-gray-200 z-0"></div>
               </div>
 
               {error && (

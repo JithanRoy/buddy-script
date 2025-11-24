@@ -18,17 +18,19 @@ import {
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FaComment, FaRegThumbsUp, FaShare, FaThumbsUp } from "react-icons/fa";
+import CommentInput from "./CommentInput";
+import CommentItem from "./CommentItem";
+import LikesModal from "./LikesModal";
 
 export default function PostCard({ post }: { post: any }) {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [comments, setComments] = useState<unknown[]>([]);
+  const [allComments, setAllComments] = useState<any[]>([]);
 
-  // Check if current user liked this post
+  const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
+
   const isLiked = user ? post.likes?.includes(user.uid) : false;
 
-  // 1. Toggle Like
   const handleLike = async () => {
     if (!user) return;
     const postRef = doc(db, "posts", post.id);
@@ -39,44 +41,49 @@ export default function PostCard({ post }: { post: any }) {
     }
   };
 
-  // 2. Fetch Comments Real-time (only when section is open)
   useEffect(() => {
     if (showComments) {
       const q = query(
-        collection(db, `posts/${post?.id}/comments`),
-        orderBy("createdAt", "desc")
+        collection(db, `posts/${post.id}/comments`),
+        orderBy("createdAt", "asc")
       );
       const unsubscribe = onSnapshot(q, (snap) => {
-        setComments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setAllComments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       });
       return () => unsubscribe();
     }
-  }, [showComments, post?.id]);
+  }, [showComments, post.id]);
 
-  // 3. Add Comment
-  const submitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim() || !user) return;
+  const handleCommentSubmit = async (text: string) => {
+    if (!user) return;
 
-    await addDoc(collection(db, `posts/${post?.id}/comments`), {
-      text: commentText,
+    await addDoc(collection(db, `posts/${post.id}/comments`), {
+      text,
       authorId: user.uid,
       authorName: user.displayName,
       authorPhoto: user.photoURL,
+      parentId: null,
       createdAt: serverTimestamp(),
+      likes: [],
     });
 
-    // Increment comment count
-    await updateDoc(doc(db, "posts", post?.id), {
-      commentsCount: (post?.commentsCount || 0) + 1,
+    await updateDoc(doc(db, "posts", post.id), {
+      commentsCount: (post.commentsCount || 0) + 1,
     });
-
-    setCommentText("");
   };
 
+  const rootComments = allComments.filter((c) => !c.parentId);
+  const getReplies = (commentId: string) =>
+    allComments.filter((c) => c.parentId === commentId);
+
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-      {/* Header */}
+    <div className="bg-white rounded-xl shadow-sm p-4 mb-4 relative">
+      <LikesModal
+        isOpen={isLikesModalOpen}
+        onClose={() => setIsLikesModalOpen(false)}
+        userIds={post.likes || []}
+      />
+
       <div className="flex items-center gap-3 mb-3">
         <div className="w-10 h-10 rounded-full bg-gray-200 relative overflow-hidden">
           <Image
@@ -100,11 +107,9 @@ export default function PostCard({ post }: { post: any }) {
         </div>
       </div>
 
-      {/* Content */}
       <p className="text-gray-700 text-sm mb-3 whitespace-pre-wrap">
         {post.content}
       </p>
-
       {post.imageURL && (
         <div className="mb-3 relative w-full h-64 sm:h-80 bg-gray-100 rounded-lg overflow-hidden">
           <Image
@@ -116,18 +121,20 @@ export default function PostCard({ post }: { post: any }) {
         </div>
       )}
 
-      {/* Reaction Stats */}
       <div className="flex items-center justify-between text-xs text-gray-500 mb-3 border-b border-gray-100 pb-2">
-        <div className="flex items-center gap-1">
-          <div className="bg-blue-500 rounded-full p-1">
-            <FaThumbsUp className="text-white text-[8px]" />
+        <button
+          onClick={() => setIsLikesModalOpen(true)}
+          className="flex items-center gap-1 hover:underline cursor-pointer"
+        >
+          <div className="bg-blue-500 rounded-full p-1 text-white">
+            <FaThumbsUp className="text-[8px]" />
           </div>
-          <span>{post.likes?.length || 0} Likes</span>
-        </div>
+          <span>{post.likes?.length || 0}</span>
+        </button>
+
         <div>{post.commentsCount || 0} Comments</div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={handleLike}
@@ -148,38 +155,19 @@ export default function PostCard({ post }: { post: any }) {
         </button>
       </div>
 
-      {/* Comments Section */}
       {showComments && (
         <div className="pt-2 border-t border-gray-100">
-          <form onSubmit={submitComment} className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Write a comment..."
-              className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </form>
-          <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-            {comments.map((comment: any) => (
-              <div key={comment.id} className="flex gap-2">
-                <div className="w-8 h-8 rounded-full bg-gray-200 relative overflow-hidden shrink-0">
-                  <Image
-                    src={comment.authorPhoto || "/assets/images/profile.png"}
-                    alt="User"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="bg-gray-100 rounded-2xl px-3 py-2">
-                  <h6 className="font-bold text-xs text-gray-900">
-                    {comment.authorName}
-                  </h6>
-                  <p className="text-sm text-gray-700">{comment.text}</p>
-                </div>
-              </div>
+          <div className="space-y-4 mb-4">
+            {rootComments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                postId={post.id}
+                replies={getReplies(comment.id)}
+              />
             ))}
           </div>
+          <CommentInput onSubmit={handleCommentSubmit} />
         </div>
       )}
     </div>

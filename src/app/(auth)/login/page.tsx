@@ -1,9 +1,14 @@
 "use client";
 
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { LoginFormData, loginSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,12 +29,44 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  const handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const names = user.displayName?.split(" ") || ["User", ""];
+        const firstName = names[0];
+        const lastName = names.length > 1 ? names.slice(1).join(" ") : "";
+
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          firstName: firstName,
+          lastName: lastName,
+          email: user.email,
+          photoURL: user.photoURL,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      router.push("/feed");
+    } catch (err: any) {
+      console.error(err);
+      setError("Google sign-in failed. Please try again.");
+    }
+  };
+
+  // --- 2. HANDLE EMAIL LOGIN ---
   const onSubmit = async (data: LoginFormData) => {
     setError("");
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push("/feed");
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error(err);
       setError("Invalid email or password.");
     }
@@ -89,6 +126,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-3 border border-gray-200 py-3 rounded-lg mb-6 hover:bg-gray-50 transition"
               >
                 <Image
@@ -106,7 +144,7 @@ export default function LoginPage() {
                 <span className="bg-white px-2 text-gray-500 text-sm relative z-10">
                   Or
                 </span>
-                <div className="absolute top-1/2 left-0 w-full h-px bg-gray-200 -z-0"></div>
+                <div className="absolute top-1/2 left-0 w-full h-px bg-gray-200 z-0"></div>
               </div>
 
               {error && (
@@ -139,14 +177,11 @@ export default function LoginPage() {
                   <div className="relative">
                     <input
                       {...register("password")}
-                      // 3. Dynamic type based on state
                       type={showPassword ? "text" : "password"}
-                      className="w-full text-black px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-blue-500 pr-10" // Added pr-10 to prevent text overlapping icon
+                      className="w-full text-black px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-blue-500 pr-10"
                     />
-
-                    {/* 4. Toggle Button */}
                     <button
-                      type="button" // Important: prevents form submission
+                      type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
                     >
@@ -157,9 +192,8 @@ export default function LoginPage() {
                       )}
                     </button>
                   </div>
-
                   {errors.password && (
-                    <p className="text-red-500 text-xs mt-1">
+                    <p className="text-red-500 text-xs">
                       {errors.password.message}
                     </p>
                   )}
