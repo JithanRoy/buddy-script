@@ -14,8 +14,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -30,7 +29,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push("/feed");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError("Invalid email or password.");
     }

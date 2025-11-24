@@ -11,10 +11,8 @@ export default function RootPage() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        // If user is logged in, go to feed
         router.push("/feed");
       } else {
-        // If not logged in, go to login
         router.push("/login");
       }
     }

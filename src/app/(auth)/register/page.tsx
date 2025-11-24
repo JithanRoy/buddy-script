@@ -1,8 +1,9 @@
 "use client";
 
 import { auth, db } from "@/lib/firebase";
-import { RegisterFormData, registerSchema } from "@/lib/validations/auth";
+import { registerSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FirebaseError } from "firebase/app";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import Image from "next/image";
@@ -10,10 +11,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { z } from "zod";
+
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -48,13 +55,21 @@ export default function RegisterPage() {
         createdAt: new Date().toISOString(),
       });
 
-      router.push("/login"); // Redirect to feed after success
-    } catch (err: any) {
+      router.push("/login");
+    } catch (err: unknown) {
       console.error(err);
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered.");
+      if (err instanceof FirebaseError) {
+        if (err.code === "auth/email-already-in-use") {
+          setError("This email is already registered.");
+        } else if (err.code === "auth/wrong-password") {
+          setError("Invalid password.");
+        } else if (err.code === "auth/user-not-found") {
+          setError("User not found.");
+        } else {
+          setError("Failed to register. Please try again.");
+        }
       } else {
-        setError("Failed to register. Please try again.");
+        setError("An unexpected error occurred.");
       }
     }
   };
@@ -192,13 +207,29 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Password
                   </label>
-                  <input
-                    {...register("password")}
-                    type="password"
-                    className="w-full text-black px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-blue-500"
-                  />
+                  <div className="relative">
+                    <input
+                      {...register("password")}
+                      type={showPassword ? "text" : "password"}
+                      className="w-full text-black px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-blue-500 pr-10"
+                    />
+
+                    {/* 4. Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <FaEyeSlash size={20} />
+                      ) : (
+                        <FaEye size={20} />
+                      )}
+                    </button>
+                  </div>
+
                   {errors.password && (
-                    <p className="text-red-500 text-xs">
+                    <p className="text-red-500 text-xs mt-1">
                       {errors.password.message}
                     </p>
                   )}
@@ -208,13 +239,28 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Repeat Password
                   </label>
-                  <input
-                    {...register("confirmPassword")}
-                    type="password"
-                    className="w-full text-black px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-blue-500"
-                  />
+                  <div className="relative">
+                    <input
+                      {...register("confirmPassword")}
+                      type={showConfirmPassword ? "text" : "password"}
+                      className="w-full text-black px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-blue-500 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? (
+                        <FaEyeSlash size={20} />
+                      ) : (
+                        <FaEye size={20} />
+                      )}
+                    </button>
+                  </div>
                   {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs">
+                    <p className="text-red-500 text-xs mt-1">
                       {errors.confirmPassword.message}
                     </p>
                   )}
