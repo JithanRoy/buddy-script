@@ -59,7 +59,7 @@ export default function CreatePost() {
           authorName: user.displayName || "Anonymous",
           authorPhoto: user.photoURL || null,
           content: content,
-          imageURL: image, // We save the string directly
+          imageURL: image,
           visibility: visibility,
           likes: [],
           commentsCount: 0,
